@@ -26,8 +26,10 @@ func (c *Cuboid) MarshalJSON() ([]byte, error) {
 		Width  uint `json:"width"`
 		Height uint `json:"height"`
 		Depth  uint `json:"depth"`
+		Volume uint `json:"volume"`
+		BagId  uint `json:"bagId"`
 	}{
-		c.ID, c.Width, c.Height, c.Depth,
+		c.ID, c.Width, c.Height, c.Depth, c.PayloadVolume(), c.BagID,
 	})
 	if err != nil {
 		err = fmt.Errorf("failed to marshal Cuboid. %w", err)
