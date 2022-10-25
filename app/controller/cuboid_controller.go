@@ -93,3 +93,24 @@ func CreateCuboid(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, &cuboid)
 }
+func UpdateCuboid(c *gin.Context) {
+
+}
+func DeleteCuboid(c *gin.Context) {
+	cuboidID := c.Param("cuboidID")
+
+	var cuboid models.Cuboid
+	if r := db.CONN.First(&cuboid, cuboidID); r.Error != nil {
+		if errors.Is(r.Error, gorm.ErrRecordNotFound) {
+			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "Not Found"})
+		} else {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": r.Error.Error()})
+		}
+		return
+	}
+	if r := db.CONN.Model(&cuboid).Delete("id = ?", &cuboidID); r.Error != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": r.Error.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"status": "Cuboid is Removed"})
+}
