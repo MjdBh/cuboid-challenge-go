@@ -187,9 +187,17 @@ var _ = Describe("Cuboid Controller", func() {
 		})
 
 		Context("When cuboid does not fit into the bag", func() {
-			PIt("Response HTTP status code 400")
+			BeforeEach(func() {
+				cuboidPayload["width"] = 4
+			})
+			It("Response HTTP status code 400", func() {
+				Expect(w.Code).To(Equal(400))
+			})
 
-			PIt("Response a JSON with error message 'Insufficient capacity in bag'")
+			It("Response a JSON with error message 'Insufficient capacity in bag'", func() {
+				m, _ := testutils.Deserialize(w.Body.String())
+				Expect(m["error"]).To(Equal("Insufficient capacity in bag"))
+			})
 		})
 
 		Context("When cuboid is not present", func() {
