@@ -17,7 +17,7 @@ type Cuboid struct {
 }
 
 func (c *Cuboid) PayloadVolume() uint {
-	return 0
+	return c.Width * c.Height * c.Depth
 }
 
 func (c *Cuboid) MarshalJSON() ([]byte, error) {
