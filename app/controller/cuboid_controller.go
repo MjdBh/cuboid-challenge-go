@@ -94,18 +94,43 @@ func CreateCuboid(c *gin.Context) {
 	c.JSON(http.StatusCreated, &cuboid)
 }
 func UpdateCuboid(c *gin.Context) {
+	cuboidID := c.Param("cuboidID")
+	cuboid, done := getCuboidByID(c, cuboidID)
+	if done {
+		return
+	}
+	var cuboidInput struct {
+		Width  uint
+		Height uint
+		Depth  uint
+		BagID  uint `json:"bagId"`
+	}
+
+	if err := c.BindJSON(&cuboidInput); err != nil {
+		return
+	}
+
+	cuboidForUpdate := models.Cuboid{Depth: cuboidInput.Depth, Width: cuboidInput.Width, Height: cuboidInput.Height}
+
+	if r := db.CONN.Model(&cuboid).Select("depth", "height", "width").
+		Updates(cuboidForUpdate); r.Error != nil {
+		var err models.ValidationErrors
+		if ok := errors.As(r.Error, &err); ok {
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		} else {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": r.Error.Error()})
+		}
+		return
+	}
+
+	c.JSON(http.StatusOK, &cuboid)
 
 }
 func DeleteCuboid(c *gin.Context) {
 	cuboidID := c.Param("cuboidID")
 
-	var cuboid models.Cuboid
-	if r := db.CONN.First(&cuboid, cuboidID); r.Error != nil {
-		if errors.Is(r.Error, gorm.ErrRecordNotFound) {
-			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "Not Found"})
-		} else {
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": r.Error.Error()})
-		}
+	cuboid, done := getCuboidByID(c, cuboidID)
+	if done {
 		return
 	}
 	if r := db.CONN.Model(&cuboid).Delete("id = ?", &cuboidID); r.Error != nil {
@@ -113,4 +138,17 @@ func DeleteCuboid(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"status": "Cuboid is Removed"})
+}
+
+func getCuboidByID(c *gin.Context, cuboidID string) (models.Cuboid, bool) {
+	var cuboid models.Cuboid
+	if r := db.CONN.First(&cuboid, cuboidID); r.Error != nil {
+		if errors.Is(r.Error, gorm.ErrRecordNotFound) {
+			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "Not Found"})
+		} else {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": r.Error.Error()})
+		}
+		return models.Cuboid{}, true
+	}
+	return cuboid, false
 }

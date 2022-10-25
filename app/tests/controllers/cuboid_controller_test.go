@@ -156,9 +156,35 @@ var _ = Describe("Cuboid Controller", func() {
 	// IMPLEMENT the tests BELOW
 
 	Describe("Update", func() {
-		PIt("Response HTTP status code 200")
+		var cuboidID uint
+		cuboidPayload := map[string]interface{}{}
 
-		PIt("Returns the updated cuboid")
+		BeforeEach(func() {
+			cuboidID = bag.Cuboids[0].ID
+		})
+		JustBeforeEach(func() {
+			cuboidPayload = map[string]interface{}{
+				"width":  1,
+				"height": 1,
+				"depth":  2,
+				"volume": 2,
+				"bagId":  bag.ID,
+			}
+			body, _ := testutils.SerializeToString(cuboidPayload)
+			w = testutils.MockRequest(http.MethodPut, "/cuboids/"+fmt.Sprintf("%v", cuboidID), &body)
+		})
+		It("Response HTTP status code 200", func() {
+			Expect(w.Code).To(Equal(200))
+		})
+
+		It("Returns the updated cuboid", func() {
+			m, _ := testutils.Deserialize(w.Body.String())
+			Expect(m["width"]).To(BeEquivalentTo(cuboidPayload["width"]))
+			Expect(m["height"]).To(BeEquivalentTo(cuboidPayload["height"]))
+			Expect(m["depth"]).To(BeEquivalentTo(cuboidPayload["depth"]))
+			Expect(m["volume"]).To(BeEquivalentTo(cuboidPayload["volume"]))
+			Expect(m["bagId"]).To(BeEquivalentTo(bag.ID))
+		})
 
 		Context("When cuboid does not fit into the bag", func() {
 			PIt("Response HTTP status code 400")
