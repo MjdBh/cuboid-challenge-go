@@ -193,7 +193,12 @@ var _ = Describe("Cuboid Controller", func() {
 		})
 
 		Context("When cuboid is not present", func() {
-			PIt("Response HTTP status code 404")
+			BeforeEach(func() {
+				cuboidID = 9999
+			})
+			It("Response HTTP status code 404", func() {
+				Expect(w.Code).To(Equal(404))
+			})
 		})
 	})
 
