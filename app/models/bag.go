@@ -8,21 +8,26 @@ import (
 type Bag struct {
 	Model
 
-	Title  string `validate:"required,max=255"`
-	Volume uint   `validate:"gt=0"`
-
-	Cuboids []Cuboid
+	Title    string `validate:"required,max=255"`
+	Volume   uint   `validate:"gt=0"`
+	Disabled bool
+	Cuboids  []Cuboid
 }
 
 func (b *Bag) PayloadVolume() uint {
-	return 0
+	var volumes uint
+	for _, cuboid := range b.Cuboids {
+		volumes += cuboid.PayloadVolume()
+	}
+	return volumes
 }
 
 func (b *Bag) AvailableVolume() uint {
-	return 0
+	return b.Volume - b.PayloadVolume()
 }
 
 func (b *Bag) SetDisabled(value bool) {
+	b.Disabled = value
 }
 
 func (b *Bag) MarshalJSON() ([]byte, error) {
