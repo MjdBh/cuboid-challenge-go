@@ -15,8 +15,9 @@ func init() {
 			fmt.Println("Running migration create_bag")
 			type Bag struct {
 				models.Model
-				Title  string
-				Volume uint
+				Title    string
+				Volume   uint
+				Disabled bool
 			}
 
 			return tx.AutoMigrate(&Bag{})
