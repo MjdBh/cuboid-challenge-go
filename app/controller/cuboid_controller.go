@@ -4,11 +4,17 @@ import (
 	"cuboid-challenge/app/db"
 	"cuboid-challenge/app/models"
 	"errors"
+	"fmt"
 	"gorm.io/gorm"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
+
+var BagNotFoundError = errors.New("bag not Found")
+var InternalError = errors.New("internal server error")
+var InsufficientCapacityError = errors.New("insufficient capacity in bag")
+var BagIsDisabled = errors.New("bag is disabled")
 
 func GetCuboid(c *gin.Context) {
 	cuboidID := c.Param("cuboidID")
@@ -37,47 +43,42 @@ func ListCuboids(c *gin.Context) {
 	c.JSON(http.StatusOK, cuboids)
 }
 
-func ValidateCuboidBeforeCreate(c *gin.Context, cuboid models.Cuboid) bool {
+func ValidateCuboidBeforeCreate(cuboid models.Cuboid) error {
 	var bag models.Bag
 	if r := db.CONN.Preload("Cuboids").First(&bag, cuboid.BagID); r.Error != nil {
 		if errors.Is(r.Error, gorm.ErrRecordNotFound) {
-			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "Bag Not Found"})
-		} else {
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": r.Error.Error()})
+			return BagNotFoundError
 		}
-		return false
+		return InternalError
 	}
+
 	if bag.Disabled {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Bag is disabled"})
-		return false
+		return BagIsDisabled
 	}
 	if bag.AvailableVolume() < cuboid.PayloadVolume() {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Insufficient capacity in bag"})
-		return false
+		return InsufficientCapacityError
 	}
-	return true
+	return nil
 }
 
-func ValidateCuboidBeforeUpdate(c *gin.Context, cuboid, cuboidForUpdate models.Cuboid) bool {
+func ValidateCuboidBeforeUpdate(cuboid, cuboidForUpdate models.Cuboid) error {
 	var bag models.Bag
 	if r := db.CONN.Preload("Cuboids").First(&bag, cuboid.BagID); r.Error != nil {
 		if errors.Is(r.Error, gorm.ErrRecordNotFound) {
-			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "Bag Not Found"})
-		} else {
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": r.Error.Error()})
+			return BagNotFoundError
 		}
-		return false
+		return InternalError
 	}
-	//I commented it because don't find any requirement or test case for it.
+	//todo I commented it because don't find any requirement or test case for it.
 	/*if bag.Disabled {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Bag is disabled"})
-		return false
+		return BagIsDisabled
 	}*/
+
+	fmt.Println("Input", bag.AvailableVolume(), cuboid.PayloadVolume(), cuboidForUpdate.PayloadVolume())
 	if bag.AvailableVolume()+cuboid.PayloadVolume() < cuboidForUpdate.PayloadVolume() {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Insufficient capacity in bag"})
-		return false
+		return InsufficientCapacityError
 	}
-	return true
+	return nil
 }
 
 func CreateCuboid(c *gin.Context) {
@@ -98,10 +99,20 @@ func CreateCuboid(c *gin.Context) {
 		Depth:  cuboidInput.Depth,
 		BagID:  cuboidInput.BagID,
 	}
-	if !ValidateCuboidBeforeCreate(c, cuboid) {
+
+	if err := ValidateCuboidBeforeCreate(cuboid); err != nil {
+		switch {
+		case errors.Is(err, BagNotFoundError):
+			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "Bag Not Found"})
+		case errors.Is(err, InternalError):
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		case errors.Is(err, InsufficientCapacityError):
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Insufficient capacity in bag"})
+		case errors.Is(err, BagIsDisabled):
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Bag is disabled"})
+		}
 		return
 	}
-
 	if r := db.CONN.Create(&cuboid); r.Error != nil {
 		var err models.ValidationErrors
 		if ok := errors.As(r.Error, &err); ok {
@@ -129,11 +140,23 @@ func UpdateCuboid(c *gin.Context) {
 	}
 
 	if err := c.BindJSON(&cuboidInput); err != nil {
+		//todo return meaningful message when input is incorrect
 		return
 	}
 
 	cuboidForUpdate := models.Cuboid{Depth: cuboidInput.Depth, Width: cuboidInput.Width, Height: cuboidInput.Height}
-	if !ValidateCuboidBeforeUpdate(c, cuboid, cuboidForUpdate) {
+	fmt.Println("for update", cuboidForUpdate)
+	fmt.Println("for update", cuboidInput)
+	if err := ValidateCuboidBeforeUpdate(cuboid, cuboidForUpdate); err != nil {
+		switch {
+		case errors.Is(err, BagNotFoundError):
+			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "Bag Not Found"})
+		case errors.Is(err, InternalError):
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		case errors.Is(err, InsufficientCapacityError):
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Insufficient capacity in bag"})
+		}
+
 		return
 	}
 	if r := db.CONN.Model(&cuboid).Select("depth", "height", "width").

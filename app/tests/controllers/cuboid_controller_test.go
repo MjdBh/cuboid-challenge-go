@@ -161,8 +161,6 @@ var _ = Describe("Cuboid Controller", func() {
 
 		BeforeEach(func() {
 			cuboidID = bag.Cuboids[0].ID
-		})
-		JustBeforeEach(func() {
 			cuboidPayload = map[string]interface{}{
 				"width":  1,
 				"height": 1,
@@ -170,6 +168,8 @@ var _ = Describe("Cuboid Controller", func() {
 				"volume": 2,
 				"bagId":  bag.ID,
 			}
+		})
+		JustBeforeEach(func() {
 			body, _ := testutils.SerializeToString(cuboidPayload)
 			w = testutils.MockRequest(http.MethodPut, "/cuboids/"+fmt.Sprintf("%v", cuboidID), &body)
 		})
