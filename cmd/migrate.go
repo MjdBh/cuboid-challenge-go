@@ -2,14 +2,15 @@ package cmd
 
 import (
 	"bytes"
-	"cuboid-challenge/app/config"
-	"cuboid-challenge/app/db"
-	"cuboid-challenge/app/db/migrations"
 	"fmt"
 	"log"
 	"os"
 	"text/template"
 	"time"
+
+	"cuboid-challenge/app/config"
+	"cuboid-challenge/app/db"
+	"cuboid-challenge/app/db/migrations"
 
 	"github.com/spf13/cobra"
 )

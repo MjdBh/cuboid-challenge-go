@@ -1,8 +1,9 @@
 package db
 
 import (
-	"cuboid-challenge/app/config"
 	"fmt"
+
+	"cuboid-challenge/app/config"
 
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"

@@ -1,10 +1,11 @@
 package testutils
 
 import (
-	"cuboid-challenge/app/config"
 	"fmt"
 	"os"
 	"regexp"
+
+	"cuboid-challenge/app/config"
 )
 
 // this should match the project root folder name.

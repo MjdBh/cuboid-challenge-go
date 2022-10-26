@@ -1,8 +1,9 @@
 package migrations
 
 import (
-	"cuboid-challenge/app/models"
 	"fmt"
+
+	"cuboid-challenge/app/models"
 
 	"github.com/go-gormigrate/gormigrate/v2"
 	"gorm.io/gorm"

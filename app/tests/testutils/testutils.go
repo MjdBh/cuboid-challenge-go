@@ -2,13 +2,14 @@ package testutils
 
 import (
 	"context"
-	"cuboid-challenge/app/router"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
+
+	"cuboid-challenge/app/router"
 )
 
 func MockRequest(method, path string, bodyStr *string) *httptest.ResponseRecorder {

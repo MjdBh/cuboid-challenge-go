@@ -1,20 +1,24 @@
 package controller
 
 import (
+	"errors"
+	"net/http"
+
 	"cuboid-challenge/app/db"
 	"cuboid-challenge/app/models"
-	"errors"
-	"fmt"
+
 	"gorm.io/gorm"
-	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
 
-var BagNotFoundError = errors.New("bag not Found")
-var InternalError = errors.New("internal server error")
-var InsufficientCapacityError = errors.New("insufficient capacity in bag")
-var BagIsDisabled = errors.New("bag is disabled")
+var (
+	ErrBagNotFound          = errors.New("bag not Found")
+	ErrCuboidNotFound       = errors.New("cuboid not Found")
+	ErrInternalServer       = errors.New("internal server error")
+	ErrInsufficientCapacity = errors.New("insufficient capacity in bag")
+	ErrBagIsDisabled        = errors.New("bag is disabled")
+)
 
 func GetCuboid(c *gin.Context) {
 	cuboidID := c.Param("cuboidID")
@@ -26,15 +30,16 @@ func GetCuboid(c *gin.Context) {
 		} else {
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": r.Error.Error()})
 		}
+
 		return
 	}
+
 	c.JSON(http.StatusOK, &cuboid)
 }
+
 func ListCuboids(c *gin.Context) {
 	var cuboids []models.Cuboid
-
 	if r := db.CONN.Find(&cuboids); r.Error != nil {
-
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": r.Error.Error()})
 
 		return
@@ -47,17 +52,20 @@ func ValidateCuboidBeforeCreate(cuboid models.Cuboid) error {
 	var bag models.Bag
 	if r := db.CONN.Preload("Cuboids").First(&bag, cuboid.BagID); r.Error != nil {
 		if errors.Is(r.Error, gorm.ErrRecordNotFound) {
-			return BagNotFoundError
+			return ErrBagNotFound
 		}
-		return InternalError
+
+		return ErrInternalServer
 	}
 
 	if bag.Disabled {
-		return BagIsDisabled
+		return ErrBagIsDisabled
 	}
+
 	if bag.AvailableVolume() < cuboid.PayloadVolume() {
-		return InsufficientCapacityError
+		return ErrInsufficientCapacity
 	}
+
 	return nil
 }
 
@@ -65,19 +73,20 @@ func ValidateCuboidBeforeUpdate(cuboid, cuboidForUpdate models.Cuboid) error {
 	var bag models.Bag
 	if r := db.CONN.Preload("Cuboids").First(&bag, cuboid.BagID); r.Error != nil {
 		if errors.Is(r.Error, gorm.ErrRecordNotFound) {
-			return BagNotFoundError
+			return ErrBagNotFound
 		}
-		return InternalError
+
+		return ErrInternalServer
 	}
-	//todo I commented it because don't find any requirement or test case for it.
+	// todo I commented it because don't find any requirement or test case for it.
 	/*if bag.Disabled {
-		return BagIsDisabled
+		return ErrBagIsDisabled
 	}*/
 
-	fmt.Println("Input", bag.AvailableVolume(), cuboid.PayloadVolume(), cuboidForUpdate.PayloadVolume())
 	if bag.AvailableVolume()+cuboid.PayloadVolume() < cuboidForUpdate.PayloadVolume() {
-		return InsufficientCapacityError
+		return ErrInsufficientCapacity
 	}
+
 	return nil
 }
 
@@ -102,17 +111,19 @@ func CreateCuboid(c *gin.Context) {
 
 	if err := ValidateCuboidBeforeCreate(cuboid); err != nil {
 		switch {
-		case errors.Is(err, BagNotFoundError):
+		case errors.Is(err, ErrBagNotFound):
 			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "Bag Not Found"})
-		case errors.Is(err, InternalError):
+		case errors.Is(err, ErrInternalServer):
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		case errors.Is(err, InsufficientCapacityError):
+		case errors.Is(err, ErrInsufficientCapacity):
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Insufficient capacity in bag"})
-		case errors.Is(err, BagIsDisabled):
+		case errors.Is(err, ErrBagIsDisabled):
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Bag is disabled"})
 		}
+
 		return
 	}
+
 	if r := db.CONN.Create(&cuboid); r.Error != nil {
 		var err models.ValidationErrors
 		if ok := errors.As(r.Error, &err); ok {
@@ -126,12 +137,14 @@ func CreateCuboid(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, &cuboid)
 }
+
 func UpdateCuboid(c *gin.Context) {
-	cuboidID := c.Param("cuboidID")
-	cuboid, done := getCuboidByID(c, cuboidID)
-	if done {
+	cuboid := getCuboidByValidation(c)
+
+	if c == nil {
 		return
 	}
+
 	var cuboidInput struct {
 		Width  uint
 		Height uint
@@ -140,20 +153,18 @@ func UpdateCuboid(c *gin.Context) {
 	}
 
 	if err := c.BindJSON(&cuboidInput); err != nil {
-		//todo return meaningful message when input is incorrect
+		// todo return meaningful message when input is incorrect
 		return
 	}
 
 	cuboidForUpdate := models.Cuboid{Depth: cuboidInput.Depth, Width: cuboidInput.Width, Height: cuboidInput.Height}
-	fmt.Println("for update", cuboidForUpdate)
-	fmt.Println("for update", cuboidInput)
 	if err := ValidateCuboidBeforeUpdate(cuboid, cuboidForUpdate); err != nil {
 		switch {
-		case errors.Is(err, BagNotFoundError):
+		case errors.Is(err, ErrBagNotFound):
 			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "Bag Not Found"})
-		case errors.Is(err, InternalError):
+		case errors.Is(err, ErrInternalServer):
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		case errors.Is(err, InsufficientCapacityError):
+		case errors.Is(err, ErrInsufficientCapacity):
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Insufficient capacity in bag"})
 		}
 
@@ -167,35 +178,53 @@ func UpdateCuboid(c *gin.Context) {
 		} else {
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": r.Error.Error()})
 		}
+
 		return
 	}
 
 	c.JSON(http.StatusOK, &cuboid)
-
 }
-func DeleteCuboid(c *gin.Context) {
-	cuboidID := c.Param("cuboidID")
 
-	cuboid, done := getCuboidByID(c, cuboidID)
-	if done {
+func getCuboidByValidation(c *gin.Context) models.Cuboid {
+	cuboidID := c.Param("cuboidID")
+	cuboid, err := getCuboidByID(cuboidID)
+
+	if err != nil {
+		switch {
+		case errors.Is(err, ErrCuboidNotFound):
+			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "Not Found"})
+		case errors.Is(err, ErrInternalServer):
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		}
+	}
+
+	return cuboid
+}
+
+func DeleteCuboid(c *gin.Context) {
+	cuboid := getCuboidByValidation(c)
+
+	if c == nil {
 		return
 	}
-	if r := db.CONN.Model(&cuboid).Delete("id = ?", &cuboidID); r.Error != nil {
+
+	if r := db.CONN.Model(&cuboid).Delete("id = ?", &cuboid.ID); r.Error != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": r.Error.Error()})
+
 		return
 	}
+
 	c.JSON(http.StatusOK, gin.H{"status": "Cuboid is Removed"})
 }
 
-func getCuboidByID(c *gin.Context, cuboidID string) (models.Cuboid, bool) {
+func getCuboidByID(cuboidID string) (models.Cuboid, error) {
 	var cuboid models.Cuboid
 	if r := db.CONN.First(&cuboid, cuboidID); r.Error != nil {
 		if errors.Is(r.Error, gorm.ErrRecordNotFound) {
-			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "Not Found"})
-		} else {
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": r.Error.Error()})
+			return models.Cuboid{}, ErrCuboidNotFound
 		}
-		return models.Cuboid{}, true
+
+		return models.Cuboid{}, ErrInternalServer
 	}
-	return cuboid, false
+	return cuboid, nil
 }

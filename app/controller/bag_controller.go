@@ -1,10 +1,11 @@
 package controller
 
 import (
-	"cuboid-challenge/app/db"
-	"cuboid-challenge/app/models"
 	"errors"
 	"net/http"
+
+	"cuboid-challenge/app/db"
+	"cuboid-challenge/app/models"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -49,9 +50,10 @@ func CreateBag(c *gin.Context) {
 	}
 
 	bag := models.Bag{
-		Title:   bagInput.Title,
-		Volume:  bagInput.Volume,
-		Cuboids: []models.Cuboid{},
+		Title:    bagInput.Title,
+		Volume:   bagInput.Volume,
+		Cuboids:  []models.Cuboid{},
+		Disabled: false,
 	}
 	if r := db.CONN.Create(&bag); r.Error != nil {
 		var err models.ValidationErrors

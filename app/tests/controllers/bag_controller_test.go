@@ -1,11 +1,12 @@
 package controllers_test
 
 import (
-	"cuboid-challenge/app/tests/factories"
-	"cuboid-challenge/app/tests/testutils"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+
+	"cuboid-challenge/app/tests/factories"
+	"cuboid-challenge/app/tests/testutils"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

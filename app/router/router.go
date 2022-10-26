@@ -1,8 +1,9 @@
 package router
 
 import (
-	"cuboid-challenge/app/controller"
 	"net/http"
+
+	"cuboid-challenge/app/controller"
 
 	"github.com/gin-gonic/gin"
 )

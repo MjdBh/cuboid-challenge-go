@@ -1,11 +1,12 @@
 package controllers_test
 
 import (
-	. "cuboid-challenge/app/models"
-	"cuboid-challenge/app/tests/testutils"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+
+	. "cuboid-challenge/app/models"
+	"cuboid-challenge/app/tests/testutils"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -228,7 +229,6 @@ var _ = Describe("Cuboid Controller", func() {
 
 			It("Remove the cuboid", func() {
 				m, _ := testutils.Deserialize(w.Body.String())
-				fmt.Println(m)
 				Expect(m["status"]).To(Equal("Cuboid is Removed"))
 			})
 		})

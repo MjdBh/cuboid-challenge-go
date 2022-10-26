@@ -1,9 +1,10 @@
 package models_test
 
 import (
+	"fmt"
+
 	"cuboid-challenge/app/models"
 	"cuboid-challenge/app/tests/testutils"
-	"fmt"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

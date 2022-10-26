@@ -1,8 +1,9 @@
 package db
 
 import (
-	"cuboid-challenge/app/models"
 	"reflect"
+
+	"cuboid-challenge/app/models"
 
 	"gorm.io/gorm"
 )

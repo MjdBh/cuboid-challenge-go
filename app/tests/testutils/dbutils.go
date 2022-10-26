@@ -1,8 +1,9 @@
 package testutils
 
 import (
-	"cuboid-challenge/app/db"
 	"fmt"
+
+	"cuboid-challenge/app/db"
 )
 
 func ConnectDB() {

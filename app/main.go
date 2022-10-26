@@ -1,11 +1,12 @@
 package main
 
 import (
+	"fmt"
+	"log"
+
 	"cuboid-challenge/app/config"
 	"cuboid-challenge/app/db"
 	"cuboid-challenge/app/router"
-	"fmt"
-	"log"
 )
 
 func main() {
