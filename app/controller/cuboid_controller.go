@@ -141,6 +141,9 @@ func CreateCuboid(c *gin.Context) {
 func UpdateCuboid(c *gin.Context) {
 	cuboid := getCuboidByValidation(c)
 
+	//todo We may have dirty read problem at hear we have update with other request that our read will be dirty
+	// so we can check before update by last update date or use distributed lock like redis or apache ignite
+
 	if c == nil {
 		return
 	}
